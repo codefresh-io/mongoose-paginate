@@ -42,7 +42,9 @@ function paginate(query, options, callback) {
 
     var promises = {
         docs:  Promise.resolve([]),
-        count: this.count(query).exec()
+        count: Object.keys(query).length === 0
+            ? this.estimatedDocumentCount().exec()
+            : this.countDocuments(query).exec(),
     };
 
     if (limit) {
