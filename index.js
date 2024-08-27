@@ -1,5 +1,3 @@
-var Promise = require('bluebird');
-
 /**
  * @param {Object}              [query={}]
  * @param {Object}              [options={}]
@@ -11,11 +9,10 @@ var Promise = require('bluebird');
  * @param {Number}                [options.offset=0] - Use offset or page to set skip position
  * @param {Number}                [options.page=1]
  * @param {Number}                [options.limit=10]
- * @param {Function}            [callback]
  *
  * @returns {Promise}
  */
-function paginate(query, options, callback) {
+function paginate(query, options) {
     query   = query || {};
     options = Object.assign({}, paginate.options, options);
 
@@ -40,12 +37,10 @@ function paginate(query, options, callback) {
         skip   = offset;
     }
 
-    var promises = {
-        docs:  Promise.resolve([]),
-        count: Object.keys(query).length === 0
-            ? this.estimatedDocumentCount().exec()
-            : this.countDocuments(query).exec(),
-    };
+    let docsPromise = Promise.resolve([]);
+    const countPromise = Object.keys(query).length === 0
+        ? this.estimatedDocumentCount().exec()
+        : this.countDocuments(query).exec();
 
     if (limit) {
         var query = this.find(query)
@@ -61,10 +56,10 @@ function paginate(query, options, callback) {
             });
         }
 
-        promises.docs = query.exec();
+        docsPromise = query.exec();
 
         if (lean && leanWithId) {
-            promises.docs = promises.docs.then(function(docs) {
+            docsPromise = docsPromise.then(function(docs) {
                 docs.forEach(function(doc) {
                     doc.id = String(doc._id);
                 });
@@ -74,26 +69,19 @@ function paginate(query, options, callback) {
         }
     }
 
-    return Promise.props(promises)
-        .then(function(data) {
-            var result = {
-                docs:  data.docs,
-                total: data.count,
-                limit: limit
+    return Promise.all([docsPromise, countPromise])
+        .then(function([docs, total]) {
+            return {
+                docs,
+                total,
+                limit,
+                ...(offset !== undefined && { offset }),
+                ...(page !== undefined && {
+                    page,
+                    pages: Math.ceil(total / limit) || 1,
+                }),
             };
-
-            if (offset !== undefined) {
-                result.offset = offset;
-            }
-
-            if (page !== undefined) {
-                result.page  = page;
-                result.pages = Math.ceil(data.count / limit) || 1;
-            }
-
-            return result;
-        })
-        .asCallback(callback);
+        });
 }
 
 /**
