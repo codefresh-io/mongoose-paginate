@@ -1,14 +1,12 @@
 // @ts-check
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoosePaginate = require('../index');
 
 /**
  * @typedef {import('mongoose').Model} Model
  * @typedef {import('../index').paginate} paginate
  */
-
-const MONGO_URI = process.env.MONGO_URI
-    || 'mongodb://127.0.0.1/mongoose_paginate_test';
 
 const AuthorSchema = new mongoose.Schema({ name: String });
 const Author       = mongoose.model('Author', AuthorSchema);
@@ -28,9 +26,12 @@ BookSchema.plugin(mongoosePaginate);
 const Book = mongoose.model('Book', BookSchema);
 
 describe('mongoose-paginate', function() {
+    /** @type {MongoMemoryServer|null} */
+    let server = null;
+
     beforeAll(async () => {
-        await mongoose.connect(MONGO_URI);
-        await mongoose.connection.db?.dropDatabase();
+        server = await MongoMemoryServer.create();
+        await mongoose.connect(server.getUri());
 
         const author = await Author.create({ name: 'Arthur Conan Doyle' });
         const date = new Date();
@@ -43,8 +44,8 @@ describe('mongoose-paginate', function() {
     });
 
     afterAll(async () => {
-        await mongoose.connection.db?.dropDatabase();
         await mongoose.disconnect();
+        await server?.stop();
     });
 
     it('should return thenable', function() {
@@ -81,18 +82,21 @@ describe('mongoose-paginate', function() {
         });
 
         it('with custom default options', async function() {
-            mongoosePaginate.paginate.options = {
-                limit: 20,
-                lean:  true,
-            };
-
-            const result = await Book.paginate();
-            expect(result.docs).toBeInstanceOf(Array);
-            expect(result.docs).toHaveLength(20);
-            expect(result.limit).toEqual(20);
-            expect(result.docs[0]).not.toBeInstanceOf(mongoose.Document);
-
-            delete mongoosePaginate.paginate.options;
+            const optionsBackup = mongoosePaginate.paginate.options;
+            try {
+                mongoosePaginate.paginate.options = {
+                    limit: 20,
+                    lean:  true,
+                };
+    
+                const result = await Book.paginate();
+                expect(result.docs).toBeInstanceOf(Array);
+                expect(result.docs).toHaveLength(20);
+                expect(result.limit).toEqual(20);
+                expect(result.docs[0]).not.toBeInstanceOf(mongoose.Document);
+            } finally {
+                mongoosePaginate.paginate.options = optionsBackup;
+            }
         });
 
         it('with offset and limit', async function() {
