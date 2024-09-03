@@ -1,11 +1,14 @@
+
 # mongoose-paginate
 
-Pagination plugin for [Mongoose](http://mongoosejs.com)
+> Pagination plugin for [Mongoose](http://mongoosejs.com)
 
 [![NPM version](https://img.shields.io/npm/v/mongoose-paginate.svg)](https://npmjs.org/package/mongoose-paginate)
 [![Build status](https://img.shields.io/travis/edwardhotchkiss/mongoose-paginate.svg)](https://travis-ci.org/edwardhotchkiss/mongoose-paginate)
 
-**Note:** This plugin will only work with Node.js >= 4.0 and Mongoose >= 4.0.
+**Note:** This plugin will only work with Node.js >= 4.2 and Mongoose >= 4.2
+=======
+[![NPM](https://nodei.co/npm/mongoose-paginate.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/mongoose-paginate/)
 
 ## Installation
 
@@ -18,7 +21,7 @@ npm install mongoose-paginate
 Add plugin to a schema and then use model `paginate` method:
 
 ```js
-var mongoose         = require('mongoose');
+var mongoose = require('mongoose');
 var mongoosePaginate = require('mongoose-paginate');
 
 var schema = new mongoose.Schema({ /* schema definition */ });
@@ -28,8 +31,6 @@ var Model = mongoose.model('Model',  schema); // Model.paginate()
 ```
 
 ### Model.paginate([query], [options], [callback])
-
-Returns promise
 
 **Parameters**
 
@@ -61,46 +62,48 @@ Promise fulfilled with object having properties:
 
 ```js
 Model.paginate({}, { page: 3, limit: 10 }, function(err, result) {
-    // result.docs
-    // result.total
-    // result.limit - 10
-    // result.page - 3
-    // result.pages
+  // result.docs
+  // result.total
+  // result.limit - 10
+  // result.page - 3
+  // result.pages
 });
 ```
 
 Or you can do the same with `offset` and `limit`:
+
 ```js
 Model.paginate({}, { offset: 20, limit: 10 }, function(err, result) {
-    // result.docs
-    // result.total
-    // result.limit - 10
-    // result.offset - 20
+  // result.docs
+  // result.total
+  // result.limit - 10
+  // result.offset - 20
 });
 ```
 
 With promise:
+
 ```js
 Model.paginate({}, { offset: 20, limit: 10 }).then(function(result) {
-    // ...
+  // ...
 });
 ```
 
 #### More advanced example
 
 ```js
-var query   = {};
+var query = {};
 var options = {
-    select:   'title date author',
-    sort:     { date: -1 },
-    populate: 'author',
-    lean:     true,
-    offset:   20, 
-    limit:    10
+  select: 'title date author',
+  sort: { date: -1 },
+  populate: 'author',
+  lean: true,
+  offset: 20, 
+  limit: 10
 };
 
 Book.paginate(query, options).then(function(result) {
-    // ...
+  // ...
 });
 ```
 
@@ -110,30 +113,32 @@ You can use `limit=0` to get only metadata:
 
 ```js
 Model.paginate({}, { offset: 100, limit: 0 }).then(function(result) {
-    // result.docs - empty array
-    // result.total
-    // result.limit - 0
-    // result.offset - 100
+  // result.docs - empty array
+  // result.total
+  // result.limit - 0
+  // result.offset - 100
 });
 ```
 
 #### Set custom default options for all queries
 
 config.js:
+
 ```js
 var mongoosePaginate = require('mongoose-paginate');
 
 mongoosePaginate.paginate.options = { 
-    lean:  true,
-    limit: 20
+  lean:  true,
+  limit: 20
 };
 ```
 
 controller.js:
+
 ```js
 Model.paginate().then(function(result) {
-    // result.docs - array of plain javascript objects
-    // result.limit - 20
+  // result.docs - array of plain javascript objects
+  // result.limit - 20
 });
 ```
 
