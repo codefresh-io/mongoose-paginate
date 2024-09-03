@@ -406,6 +406,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@codefresh-io/mongoose-paginate@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@codefresh-io/mongoose-paginate@workspace:."
+  dependencies:
+    "@types/jest": "npm:^29.5.12"
+    jest: "npm:^29.7.0"
+    mongoose: "npm:^8.6.0"
+  languageName: unknown
+  linkType: soft
+
 "@isaacs/cliui@npm:^8.0.2":
   version: 8.0.2
   resolution: "@isaacs/cliui@npm:8.0.2"
@@ -2752,16 +2762,6 @@ __metadata:
   checksum: 10c0/5ea1b78d3d7915b7d8e1047f15247e7d831ff79c537c51656b34b5a223f917ab686b96cdf5eca7495a1f0125f7cc4b1355881645138c995a50c42b8b0665e518
   languageName: node
   linkType: hard
-
-"mongoose-paginate@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "mongoose-paginate@workspace:."
-  dependencies:
-    "@types/jest": "npm:^29.5.12"
-    jest: "npm:^29.7.0"
-    mongoose: "npm:^8.6.0"
-  languageName: unknown
-  linkType: soft
 
 "mongoose@npm:^8.6.0":
   version: 8.6.0
