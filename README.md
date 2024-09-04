@@ -1,19 +1,15 @@
 
-# mongoose-paginate
+# @codefresh-io/mongoose-paginate
 
-> Pagination plugin for [Mongoose](http://mongoosejs.com)
+> Fork of [`mongoose-paginate`](https://github.com/edwardhotchkiss/mongoose-paginate), maintained by [Codefresh](https://codefresh.io/).
 
-[![NPM version](https://img.shields.io/npm/v/mongoose-paginate.svg)](https://npmjs.org/package/mongoose-paginate)
-[![Build status](https://img.shields.io/travis/edwardhotchkiss/mongoose-paginate.svg)](https://travis-ci.org/edwardhotchkiss/mongoose-paginate)
+Pagination plugin for [Mongoose](http://mongoosejs.com).
 
-**Note:** This plugin will only work with Node.js >= 4.2 and Mongoose >= 4.2
-=======
-[![NPM](https://nodei.co/npm/mongoose-paginate.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/mongoose-paginate/)
 
 ## Installation
 
 ```sh
-npm install mongoose-paginate
+npm install @codefresh-io/mongoose-paginate
 ```
 
 ## Usage
@@ -21,36 +17,36 @@ npm install mongoose-paginate
 Add plugin to a schema and then use model `paginate` method:
 
 ```js
-var mongoose = require('mongoose');
-var mongoosePaginate = require('mongoose-paginate');
+const { Model, Schema } = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate');
 
-var schema = new mongoose.Schema({ /* schema definition */ });
+const schema = new mongoose.Schema({ /* schema definition */ });
 schema.plugin(mongoosePaginate);
 
-var Model = mongoose.model('Model',  schema); // Model.paginate()
+const Model = mongoose.model('Model',  schema);
+Model.paginate();
 ```
 
-### Model.paginate([query], [options], [callback])
+### Model.paginate([filter], [options])
 
 **Parameters**
 
-* `[query]` {Object} - Query criteria. [Documentation](https://docs.mongodb.org/manual/tutorial/query-documents)
+* `[filter]` {Object} - Query filter. [*(Documentation)*](https://mongoosejs.com/docs/api/model.html#Model.find())
 * `[options]` {Object}
-  - `[select]` {Object | String} - Fields to return (by default returns all fields). [Documentation](http://mongoosejs.com/docs/api.html#query_Query-select) 
-  - `[sort]` {Object | String} - Sort order. [Documentation](http://mongoosejs.com/docs/api.html#query_Query-sort) 
-  - `[populate]` {Array | Object | String} - Paths which should be populated with other documents. [Documentation](http://mongoosejs.com/docs/api.html#query_Query-populate)
-  - `[lean=false]` {Boolean} - Should return plain javascript objects instead of Mongoose documents?  [Documentation](http://mongoosejs.com/docs/api.html#query_Query-lean)
-  - `[leanWithId=true]` {Boolean} - If `lean` and `leanWithId` are `true`, adds `id` field with string representation of `_id` to every document
-  - `[offset=0]` {Number} - Use `offset` or `page` to set skip position
-  - `[page=1]` {Number}
-  - `[limit=10]` {Number}
-* `[callback(err, result)]` - If specified the callback is called once pagination results are retrieved or when an error has occurred
+  - `[select]` {Object | String} - Fields to return (by default returns all fields). [*(Documentation)*](http://mongoosejs.com/docs/api.html#query_Query-select)
+  - `[sort]` {Object | String} - Sort order. [*(Documentation)*](http://mongoosejs.com/docs/api.html#query_Query-sort)
+  - `[populate]` {Array | Object | String} - Paths which should be populated with other documents. [*(Documentation)*](http://mongoosejs.com/docs/api.html#query_Query-populate)
+  - `[lean=false]` {Boolean} - Should return plain javascript objects instead of Mongoose documents? [*(Documentation)*](http://mongoosejs.com/docs/api.html#query_Query-lean)
+  - `[leanWithId=true]` {Boolean} - If `lean` and `leanWithId` are `true`, adds `id` field with string representation of `_id` to every document.
+  - `[offset=0]` {Number} - Use either `offset` or `page` to set skip position
+  - `[page=1]` {Number} - Use either `offset` or `page` to set skip position
+  - `[limit=10]` {Number} - If `limit===0`, empty array will be returned.
 
 **Return value**
 
 Promise fulfilled with object having properties:
-* `docs` {Array} - Array of documents
-* `total` {Number} - Total number of documents in collection that match a query
+* `docs` {Array} - Array of documents. Empty array, if `limit===0`.
+* `total` {Number} - Total number of documents in collection that match a query. If query filter was omit or empty, estimated number of docs will be returned.
 * `limit` {Number} - Limit that was used
 * `[page]` {Number} - Only if specified or default `page`/`offset` values were used 
 * `[pages]` {Number} - Only if `page` specified or default `page`/`offset` values were used 
@@ -61,39 +57,37 @@ Promise fulfilled with object having properties:
 #### Skip 20 documents and return 10 documents
 
 ```js
-Model.paginate({}, { page: 3, limit: 10 }, function(err, result) {
-  // result.docs
-  // result.total
-  // result.limit - 10
-  // result.page - 3
-  // result.pages
-});
+const result = await Model.paginate({}, { page: 3, limit: 10 });
+/*
+{
+  docs: <Array>,
+  total: <Number>,
+  limit: 10,
+  page: 3,
+  pages: <Number>,
+}
+*/
 ```
 
 Or you can do the same with `offset` and `limit`:
 
 ```js
-Model.paginate({}, { offset: 20, limit: 10 }, function(err, result) {
-  // result.docs
-  // result.total
-  // result.limit - 10
-  // result.offset - 20
-});
-```
-
-With promise:
-
-```js
-Model.paginate({}, { offset: 20, limit: 10 }).then(function(result) {
-  // ...
-});
+const result = await Model.paginate({}, { offset: 20, limit: 10 });
+/*
+{
+  docs: <Array>,
+  total: <Number>,
+  limit: 10,
+  offset: 20,
+}
+*/
 ```
 
 #### More advanced example
 
 ```js
-var query = {};
-var options = {
+const filter = {};
+const options = {
   select: 'title date author',
   sort: { date: -1 },
   populate: 'author',
@@ -102,9 +96,7 @@ var options = {
   limit: 10
 };
 
-Book.paginate(query, options).then(function(result) {
-  // ...
-});
+const result = Book.paginate(filter, options);
 ```
 
 #### Zero limit
@@ -112,41 +104,43 @@ Book.paginate(query, options).then(function(result) {
 You can use `limit=0` to get only metadata:
 
 ```js
-Model.paginate({}, { offset: 100, limit: 0 }).then(function(result) {
-  // result.docs - empty array
-  // result.total
-  // result.limit - 0
-  // result.offset - 100
-});
+const result = await Model.paginate({}, { offset: 100, limit: 0 });
+/*
+{
+  docs: [],         // empty array
+  total: <Number>,
+  limit: 0,
+  offset: 100,
+}
+*/
 ```
 
 #### Set custom default options for all queries
 
-config.js:
-
 ```js
-var mongoosePaginate = require('mongoose-paginate');
+const { paginate } = require('mongoose-paginate');
 
-mongoosePaginate.paginate.options = { 
+paginate.options = { 
   lean:  true,
   limit: 20
 };
-```
 
-controller.js:
+// ...
 
-```js
-Model.paginate().then(function(result) {
-  // result.docs - array of plain javascript objects
-  // result.limit - 20
-});
+const result = await Model.paginate();
+/*
+{
+  docs: <Array>,  // array of POJO
+  limit: 20,      // default limit 20 was applied
+}
+*/
 ```
 
 ## Tests
 
 ```sh
-npm install
-npm test
+yarn install
+yarn test
 ```
 
 ## License
