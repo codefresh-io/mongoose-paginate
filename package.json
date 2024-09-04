@@ -1,7 +1,7 @@
 {
   "name": "@codefresh-io/mongoose-paginate",
   "description": "Pagination plugin for Mongoose",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "author": {
     "name": "Edward Hotchkiss",
     "email": "edward@edwardhotchkiss.com"
