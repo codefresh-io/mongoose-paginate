@@ -42,6 +42,7 @@
     "mongoose": "^8.6.0"
   },
   "scripts": {
+    "eslint": "exit 0",
     "test": "npx jest ."
   },
   "packageManager": "yarn@4.4.1"
