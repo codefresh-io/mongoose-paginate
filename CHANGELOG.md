@@ -1,3 +1,4 @@
+**🥲 Deprecated! See releases page for changelog.**
 
 v5.0.0 / 2015-12-07
 ==================

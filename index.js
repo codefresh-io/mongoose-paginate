@@ -1,96 +1,118 @@
-'use strict';
+// @ts-check
 
 /**
- * @package mongoose-paginate
- * @param {Object} [query={}]
- * @param {Object} [options={}]
- * @param {Object|String} [options.select]
- * @param {Object|String} [options.sort]
- * @param {Array|Object|String} [options.populate]
- * @param {Boolean} [options.lean=false]
- * @param {Boolean} [options.leanWithId=true]
- * @param {Number} [options.offset=0] - Use offset or page to set skip position
- * @param {Number} [options.page=1]
- * @param {Number} [options.limit=10]
- * @param {Function} [callback]
+ * @typedef {Object}                    BaseOptions
+ * @property {Object | string}          [select]
+ * @property {Object | string}          [sort]
+ * @property {Array | Object | string}  [populate]
+ * @property {boolean}                  [lean=false]
+ * @property {boolean}                  [leanWithId=true]
+ * @property {number}                   [limit]
+ * 
+ * @typedef {Object}                    OffsetProps
+ * @property {number}                   [offset=0] Use either `offset` or `page` to set skip position
+ * @property {never}                    [page]
+ * @typedef {OffsetProps & BaseOptions} OffsetOptions
+ * 
+ * @typedef {Object}                    PageProps
+ * @property {never}                    [offset]
+ * @property {number}                   [page=1] Use either `offset` or `page` to set skip position
+ * @typedef {PageProps & BaseOptions}   PageOptions
+ * 
+ * @typedef {OffsetOptions|PageOptions} Options
+ *
+ * @typedef {Required<Pick<Options, 'lean' | 'leanWithId' | 'limit'>>} DefaultOptions
+ *
+ * @typedef {import('mongoose').FilterQuery<any>}   Filter
+ * @typedef {import('mongoose').Schema}             Schema
+ * @typedef {import('mongoose').Model}              Model
+ * @typedef {import('mongoose').Query}              Query
+ */
+
+/** @type {DefaultOptions} */
+const defaultOptions = {
+    lean: false,
+    leanWithId: true,
+    limit: 10,
+};
+
+/**
+ * @this {Model}
+ * @param {Filter} [filter={}]
+ * @param {Options} [opts] See {@link defaultOptions default options} for default values
  * @returns {Promise}
  */
+async function paginate(filter = {}, opts = {}) {
+    const options = {
+        ...defaultOptions,
+        ...paginate.options,
+        ...opts,
+    };
 
-function paginate(query, options, callback) {
-  query = query || {};
-  options = Object.assign({}, paginate.options, options);
-  let select = options.select;
-  let sort = options.sort;
-  let populate = options.populate;
-  let lean = options.lean || false;
-  let leanWithId = options.leanWithId ? options.leanWithId : true;
-  let limit = options.limit ? options.limit : 10;
-  let page, offset, skip, promises;
-  if (options.offset) {
-    offset = options.offset;
-    skip = offset;
-  } else if (options.page) {
-    page = options.page;
-    skip = (page - 1) * limit;
-  } else {
-    page = 1;
-    offset = 0;
-    skip = offset;
-  }
-  if (limit) {
-    let docsQuery = this.find(query)
-      .select(select)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean(lean);
-    if (populate) {
-      [].concat(populate).forEach((item) => {
-        docsQuery.populate(item);
-      });
+    const { lean, leanWithId, limit, select, sort, populate } = options;
+
+        let skip, offset, page;
+    if (options.hasOwnProperty('offset')) {
+        offset = options.offset;
+        skip = offset;
+    } else if (options.hasOwnProperty('page')) {
+        page = options.page;
+        skip = (page - 1) * limit;
+    } else {
+        offset = 0;
+        page = 1;
+        skip = offset;
     }
-    promises = {
-      docs: docsQuery.exec(),
-      count: this.count(query).exec()
+
+    const countPromise = Object.keys(filter).length === 0
+        ? this.estimatedDocumentCount().exec()
+        : this.countDocuments(filter).exec();
+    /** @type {Promise<any[]>}  */
+    let docsPromise = Promise.resolve([]); // in case limit is 0
+
+    if (limit !== 0) {
+        /** @type {Query} */
+        const query = this.find(filter)
+            .select(select)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .lean(lean);
+
+        if (populate) {
+            [].concat(populate).forEach((item) => query.populate(item));
+        }
+
+        docsPromise = query.exec();
+
+        if (lean && leanWithId) {
+            docsPromise = docsPromise.then((docs) => {
+                return docs.map((doc) => {
+                    doc.id = String(doc._id);
+                    return doc;
+                });
+            });
+        }
+    }
+
+    const [docs, total] = await Promise.all([docsPromise, countPromise]);
+    return {
+        docs,
+        total,
+        limit,
+        ...(offset !== undefined && { offset }),
+        ...(page !== undefined && {
+            page,
+            pages: Math.ceil(total / limit) || 1,
+        }),
     };
-    if (lean && leanWithId) {
-      promises.docs = promises.docs.then((docs) => {
-        docs.forEach((doc) => {
-          doc.id = String(doc._id);
-        });
-        return docs;
-      });
-    }
-  }
-  promises = Object.keys(promises).map((x) => promises[x]);
-  return Promise.all(promises).then((data) => {
-    let result = {
-      docs: data.docs,
-      total: data.count,
-      limit: limit
-    };
-    if (offset !== undefined) {
-      result.offset = offset;
-    }
-    if (page !== undefined) {
-      result.page = page;
-      result.pages = Math.ceil(data.count / limit) || 1;
-    }
-    if (typeof callback === 'function') {
-      return callback(null, result);
-    }
-    let promise = new Promise();
-    promise.resolve(result);
-    return promise;
-  });
 }
+/** @type {Options} */
+paginate.options = defaultOptions;
 
-/**
- * @param {Schema} schema
- */
-
-module.exports = function(schema) {
-  schema.statics.paginate = paginate;
+/** @param {Schema} schema */
+module.exports = function (schema) {
+    schema.static('paginate', paginate);
 };
 
 module.exports.paginate = paginate;

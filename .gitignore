@@ -1,3 +1,15 @@
 .idea/
+*.iml
 node_modules/
+.npmrc
+*.log
 test.js
+
+#yarn
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
